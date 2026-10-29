@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>Attendance Management System</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <style>
+    :root {
+      --primary: #1a73e8;
+      --primary-dark: #0d47a1;
+      --success: #0f9d58;
+      --danger: #d93025;
+      --bg: #f0f4f8;
+      --card: #ffffff;
+      --text: #202124;
+      --muted: #5f6368;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+    .topbar {
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      color: #fff;
+      padding: 16px 18px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      box-shadow: 0 2px 10px rgba(26,115,232,.35);
+    }
+    .logo {
+      width: 46px; height: 46px; border-radius: 50%;
+      background: #fff; display: grid; place-items: center;
+      color: var(--primary); font-size: 1.2rem;
+    }
+    .topbar h2 { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: #bbdefb; margin-bottom: 2px; }
+    .topbar h1 { font-size: 1.1rem; font-weight: 700; line-height: 1.2; }
+    
+    .wrap { max-width: 560px; margin: 0 auto; padding: 16px; }
+    .tabs {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px;
+    }
+    .tab {
+      border: 2px solid #dce3ec; background: #fff; border-radius: 12px;
+      padding: 12px 6px; font-size: 0.85rem; font-weight: 600; color: var(--muted);
+      cursor: pointer; transition: .2s;
+    }
+    .tab i { display: block; font-size: 1.2rem; margin-bottom: 6px; }
+    .tab.active {
+      border-color: var(--primary); color: var(--primary);
+      background: #e8f0fe; box-shadow: 0 0 0 3px rgba(26,115,232,.12);
+    }
+    .card {
+      background: var(--card); border-radius: 16px; padding: 16px;
+      box-shadow: 0 8px 24px rgba(0,0,0,.06); margin-bottom: 14px;
+    }
+    .panel { display: none; }
+    .panel.active { display: block; }
+    #reader {
+      width: 100%; border-radius: 12px; overflow: hidden;
+      background: #111; min-height: 260px;
+    }
+    #reader video { border-radius: 12px !important; }
+    .hint {
+      font-size: .8rem; color: var(--muted); margin-top: 10px; line-height: 1.45;
+      background: #f8fafc; border-radius: 10px; padding: 10px 12px;
+    }
+    .btn {
+      width: 100%; border: 0; border-radius: 12px; padding: 13px 16px;
+      font-family: inherit; font-weight: 700; font-size: .95rem;
+      cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-primary:active { transform: scale(.98); }
+    .btn-danger { background: #fce8e6; color: var(--danger); }
+    .btn-success { background: var(--success); color: #fff; }
+    .btn + .btn { margin-top: 8px; }
+    .btn:disabled { opacity: .6; cursor: not-allowed; }
+    
+    input[type="text"] {
+      width: 100%; padding: 13px 14px; border: 2px solid #dce3ec; border-radius: 12px;
+      font-family: inherit; font-size: 1rem; margin-bottom: 10px; outline: none; text-transform: uppercase;
+    }
+    input[type="text"]:focus { border-color: var(--primary); }
+    
+    .status {
+      display: none; border-radius: 12px; padding: 14px; margin-top: 12px;
+      font-size: 0.95rem; font-weight: 600; line-height: 1.4; text-align: center;
+    }
+    .status.show { display: block; }
+    .status.ok { background: #e6f4ea; color: #137333; border: 1px solid #cce8d6; }
+    .status.err { background: #fce8e6; color: #c5221f; border: 1px solid #f8c2be; }
+    .status.info { background: #e8f0fe; color: #174ea6; border: 1px solid #c2d7fa; }
+    
+    .row { display: flex; gap: 8px; }
+    .row .btn { flex: 1; }
+    .footer {
+      text-align: center; color: var(--muted); font-size: .75rem; padding: 8px 0 20px;
+    }
+    .cam-list { margin: 8px 0 12px; }
+    .cam-list select {
+      width: 100%; padding: 10px 12px; border-radius: 10px; border: 2px solid #dce3ec;
+      font-family: inherit; font-size: .9rem; background: #fff;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div class="logo"><i class="fas fa-school"></i></div>
+    <div>
+      <h2>YOUR SCHOOL NAME</h2>
+      <h1>Attendance Management System</h1>
+    </div>
+  </div>
+
+  <div class="wrap">
+    
+    <!-- TABS -->
+    <div class="tabs">
+      <button class="tab active" data-tab="live" type="button">
+        <i class="fas fa-video"></i> Live Stream
+      </button>
+      <button class="tab" data-tab="manual" type="button">
+        <i class="fas fa-keyboard"></i> Manual Entry
+      </button>
+    </div>
+
+    <div class="card">
+      
+      <!-- LIVE SCANNER PANEL -->
+      <div id="panel-live" class="panel active">
+        <div class="cam-list">
+          <select id="cameraSelect">
+            <option value="">Detecting cameras…</option>
+          </select>
+        </div>
+        <div id="reader"></div>
+        <div class="row" style="margin-top:12px">
+          <button class="btn btn-primary" id="btnStart" type="button">
+            <i class="fas fa-play"></i> Start Camera
+          </button>
+          <button class="btn btn-danger" id="btnStop" type="button" disabled>
+            <i class="fas fa-stop"></i> Stop Camera
+          </button>
+        </div>
+        <div class="hint">
+          <i class="fas fa-info-circle"></i> <strong>Tip:</strong> Point the camera at the Student's QR code.
+        </div>
+      </div>
+
+      <!-- MANUAL ENTRY PANEL -->
+      <div id="panel-manual" class="panel">
+        <input type="text" id="manualId" placeholder="Enter Student ID" autocomplete="off" autocapitalize="characters" />
+        <button class="btn btn-success" id="btnManual" type="button">
+          <i class="fas fa-check"></i> Mark Attendance
+        </button>
+        <div class="hint">
+          <i class="fas fa-info-circle"></i> <strong>Tip:</strong> Enter the Student ID and click Mark Attendance.
+        </div>
+      </div>
+
+      <!-- STATUS BANNER -->
+      <div id="status" class="status"></div>
+    </div>
+
+    <div class="footer">Powered by ERP Attendance Portal</div>
+  </div>
+
+<script>
+(function () {
+  var GAS_URL = "https://script.google.com/macros/s/AKfycbyhpGybzHvp0W7968Yi7IrpD9BtLhopcVmkc8LoWrU3GcnJgYy8hi8HwF9x2AOKsCos/exec";
+  var SCAN_COOLDOWN_MS = 4000;
+
+  var html5Qr = null;
+  var scanning = false;
+  var lastScan = { id: "", t: 0 };
+  var camerasCache = [];
+
+  var statusEl = document.getElementById("status");
+  var cameraSelect = document.getElementById("cameraSelect");
+  var btnStart = document.getElementById("btnStart");
+  var btnStop = document.getElementById("btnStop");
+
+  function showStatus(msg, type) {
+    statusEl.className = "status show " + (type || "info");
+    statusEl.innerHTML = msg;
+  }
+  function clearStatus() {
+    statusEl.className = "status";
+    statusEl.textContent = "";
+  }
+
+  document.querySelectorAll(".tab").forEach(function (tab) {
+    tab.addEventListener("click", function () {
+      document.querySelectorAll(".tab").forEach(function (t) { t.classList.remove("active"); });
+      document.querySelectorAll(".panel").forEach(function (p) { p.classList.remove("active"); });
+      tab.classList.add("active");
+      document.getElementById("panel-" + tab.getAttribute("data-tab")).classList.add("active");
+      
+      if (tab.getAttribute("data-tab") !== "live") stopCamera();
+      clearStatus();
+    });
+  });
+
+  function extractStudentId(raw) {
+    if (!raw) return "";
+    var s = String(raw).trim();
+    if (/^[A-Za-z0-9_\-]{2,40}$/.test(s)) return s;
+    try {
+      var u = new URL(s);
+      var q = u.searchParams.get("studentId") || u.searchParams.get("id") || u.searchParams.get("sid");
+      if (q) return q.trim();
+    } catch (e) {}
+    try {
+      var j = JSON.parse(s);
+      if (j.studentId) return String(j.studentId).trim();
+      if (j.id) return String(j.id).trim();
+    } catch (e2) {}
+    var parts = s.split(/[\s\/\?&#=]+/).filter(Boolean);
+    return parts[parts.length - 1] || s;
+  }
+
+  function canAccept(id) {
+    var now = Date.now();
+    if (id === lastScan.id && (now - lastScan.t) < SCAN_COOLDOWN_MS) return false;
+    lastScan = { id: id, t: now };
+    return true;
+  }
+
+  // ===== LOUD SUCCESS / ERROR BEEP =====
+  function playBeep(isSuccess) {
+    try {
+      var ctx = new (window.AudioContext || window.webkitAudioContext)();
+      var osc = ctx.createOscillator();
+      var gainNode = ctx.createGain();
+      
+      osc.connect(gainNode);
+      gainNode.connect(ctx.destination);
+      
+      if (isSuccess) {
+        osc.type = "square";
+        osc.frequency.setValueAtTime(900, ctx.currentTime);
+        gainNode.gain.setValueAtTime(1.0, ctx.currentTime);
+        
+        gainNode.gain.setValueAtTime(1.0, ctx.currentTime);
+        gainNode.gain.setValueAtTime(0.0, ctx.currentTime + 0.1);
+        gainNode.gain.setValueAtTime(1.0, ctx.currentTime + 0.15);
+        gainNode.gain.setValueAtTime(0.0, ctx.currentTime + 0.25);
+        
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.3);
+      } else {
+        osc.type = "sawtooth";
+        osc.frequency.setValueAtTime(250, ctx.currentTime);
+        gainNode.gain.setValueAtTime(1.0, ctx.currentTime);
+        
+        osc.start(ctx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.6);
+        osc.stop(ctx.currentTime + 0.6);
+      }
+    } catch (e) {}
+  }
+
+  // ===== MARK ATTENDANCE =====
+  async function markAttendance(studentId, markedBy) {
+    var id = extractStudentId(studentId);
+    if (!id) {
+      playBeep(false);
+      showStatus('<i class="fas fa-times-circle"></i> Invalid QR Code or ID format.', "err");
+      return;
+    }
+    if (!canAccept(id)) {
+      showStatus('<i class="fas fa-clock"></i> Scan processing... Please wait.', "info");
+      return;
+    }
+
+    showStatus('<i class="fas fa-spinner fa-spin"></i> Processing Attendance for <b>' + id + '</b>...', "info");
+
+    try {
+      var res = await fetch(GAS_URL, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify({
+          action: "markQRAttendance",
+          studentId: id,
+          markedBy: markedBy || "Kiosk"
+        })
+      });
+      
+      var text = await res.text();
+      var data;
+      try { 
+        data = JSON.parse(text); 
+      } catch (e) { 
+        throw new Error("Invalid response format from server."); 
+      }
+
+      var sStatus = String(data.status || data.success || "").toUpperCase();
+      var msgText = data.message || "Attendance Processed.";
+
+      // IF SUCCESS OR ALREADY MARKED TODAY -> DISPLAY GREEN / SUCCESS BANNER
+      if (sStatus === "SUCCESS" || sStatus === "OK" || sStatus === "TRUE" || sStatus === "ALREADY_MARKED") {
+        playBeep(true);
+        var bannerType = (sStatus === "ALREADY_MARKED") ? "info" : "ok";
+        showStatus('<i class="fas fa-check-circle"></i> <b>' + msgText + '</b><br><small>Student ID: ' + id + '</small>', bannerType);
+      } else {
+        playBeep(false);
+        showStatus('<i class="fas fa-exclamation-triangle"></i> <b>Error:</b> ' + msgText, "err");
+      }
+      
+      document.getElementById("manualId").value = "";
+
+    } catch (err) {
+      playBeep(false);
+      showStatus('<i class="fas fa-wifi"></i> Connection Error: ' + err.message, "err");
+    }
+  }
+
+  function onScanSuccess(decodedText) {
+    if (!decodedText) return;
+    markAttendance(decodedText, "Live Scanner");
+  }
+
+  // ===== CAMERA SETUP =====
+  async function listCameras() {
+    cameraSelect.innerHTML = '<option value="">Checking cameras…</option>';
+    try {
+      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        try {
+          var stream = await navigator.mediaDevices.getUserMedia({ audio: false, video: true });
+          stream.getTracks().forEach(function (t) { t.stop(); });
+        } catch (permErr) {}
+      }
+
+      var cameras = await Html5Qrcode.getCameras();
+      camerasCache = cameras || [];
+      cameraSelect.innerHTML = "";
+
+      if (!camerasCache.length) {
+        cameraSelect.innerHTML = '<option value="">No camera found</option>';
+        showStatus('<i class="fas fa-video-slash"></i> No camera detected. Use Manual Entry.', "err");
+        return;
+      }
+
+      camerasCache.forEach(function (cam, idx) {
+        var opt = document.createElement("option");
+        opt.value = cam.id;
+        opt.textContent = cam.label || ("Camera " + (idx + 1));
+        cameraSelect.appendChild(opt);
+      });
+
+      var back = camerasCache.find(function (c) {
+        return /back|rear|environment/i.test(c.label || "");
+      });
+      if (back) cameraSelect.value = back.id;
+
+      showStatus('<i class="fas fa-check"></i> Camera ready. Click <b>Start Camera</b>.', "info");
+    } catch (err) {
+      cameraSelect.innerHTML = '<option value="">Camera list failed</option>';
+      showStatus('<i class="fas fa-times-circle"></i> Camera Error. Use Manual Entry.', "err");
+    }
+  }
+
+  async function startCamera() {
+    clearStatus();
+    if (scanning) return;
+
+    if (!window.Html5Qrcode) {
+      showStatus("QR Code library failed to load. Check internet connection.", "err");
+      return;
+    }
+
+    if (!html5Qr) html5Qr = new Html5Qrcode("reader");
+
+    var camId = cameraSelect.value;
+    var config = {
+      fps: 10,
+      qrbox: function (w, h) { return { width: Math.min(w, h) * 0.72, height: Math.min(w, h) * 0.72 }; },
+      aspectRatio: 1.333,
+      disableFlip: false
+    };
+
+    btnStart.disabled = true;
+    showStatus('<i class="fas fa-spinner fa-spin"></i> Starting camera...', "info");
+
+    var strategies = [];
+    if (camId) strategies.push(camId);
+    strategies.push({ facingMode: "environment" });
+    strategies.push({ facingMode: "user" });
+    strategies.push(true);
+
+    for (var i = 0; i < strategies.length; i++) {
+      try {
+        await html5Qr.start(strategies[i], config, onScanSuccess, function () {});
+        scanning = true;
+        btnStart.disabled = true;
+        btnStop.disabled = false;
+        showStatus('<i class="fas fa-qrcode"></i> Camera Live — Show QR Code.', "ok");
+        return;
+      } catch (err) {
+        try { await html5Qr.stop(); } catch (e2) {}
+        try { await html5Qr.clear(); } catch (e3) {}
+      }
+    }
+
+    btnStart.disabled = false;
+    btnStop.disabled = true;
+    scanning = false;
+
+    showStatus('<i class="fas fa-times-circle"></i> Camera access denied. Allow camera permissions.', "err");
+  }
+
+  async function stopCamera() {
+    if (!html5Qr) return;
+    try {
+      if (scanning) await html5Qr.stop();
+      await html5Qr.clear();
+    } catch (e) {}
+    scanning = false;
+    btnStart.disabled = false;
+    btnStop.disabled = true;
+  }
+
+  btnStart.addEventListener("click", startCamera);
+  btnStop.addEventListener("click", function () {
+    stopCamera().then(function () {
+      showStatus("Camera stopped.", "info");
+    });
+  });
+
+  document.getElementById("btnManual").addEventListener("click", function () {
+    var id = document.getElementById("manualId").value.trim();
+    if (id === "") {
+      showStatus("Please enter a valid Student ID.", "err");
+      playBeep(false);
+      return;
+    }
+    markAttendance(id, "Manual Entry");
+  });
+
+  document.getElementById("manualId").addEventListener("keydown", function (e) {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      document.getElementById("btnManual").click();
+    }
+  });
+
+  if (!window.isSecureContext) {
+    showStatus("Security Error: Camera requires HTTPS.", "err");
+  } else {
+    listCameras();
+  }
+})();
+</script>
+</body>
+</html>
